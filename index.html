@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Web App with PyScript</title>
+    
+    <!-- PyScript CSS and JS -->
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            color: #555;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-group label:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .control-group input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.3);
+            accent-color: #667eea;
+        }
+        
+        #plot-container {
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            min-height: 400px;
+            background: white;
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .status {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            color: #2d5a2d;
+            font-weight: bold;
+        }
+        
+        /* PyScript loading styles */
+        py-terminal {
+            display: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐍 Python-Powered Web App</h1>
+        
+        <div class="status" id="status">
+            📦 Loading Python environment...
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>
+                    <input type="checkbox" id="color-checkbox" py-change="handle_color_change()">
+                    🎨 Make y = x line RED (unchecked = blue)
+                </label>
+            </div>
+        </div>
+        
+        <div id="plot-container">
+            <div class="loading">
+                ⏳ Initializing Python plotting environment...
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <strong>🐍 Pure Python Web App</strong><br>
+            Backend Logic: Python with PyScript • Frontend: Minimal HTML/CSS • Interactive: 100% Python
+        </div>
+    </div>
+
+    <!-- Python Configuration -->
+    <py-config>
+        packages = ["numpy", "matplotlib", "plotly"]
+        
+        [[fetch]]
+        files = ["./main.py", "./plot_utils.py"]
+    </py-config>
+
+    <!-- Main Python Script -->
+    <py-script>
+import asyncio
+from js import document, console
+from pyodide.ffi import create_proxy
+import numpy as np
+import plotly.graph_objects as go
+import plotly.offline as pyo
+from plotly.offline import init_notebook_mode
+import json
+
+# Import our custom modules
+import main
+import plot_utils
+
+# Initialize the app
+app = main.PlotApp()
+
+def handle_color_change():
+    """Called when checkbox state changes"""
+    checkbox = document.getElementById('color-checkbox')
+    is_red = checkbox.checked
+    console.log(f"Checkbox changed: {is_red}")
+    app.update_plot_color(is_red)
+
+def update_status(message):
+    """Update the status message"""
+    status_elem = document.getElementById('status')
+    status_elem.innerHTML = f"✅ {message}"
+
+# Initialize the app
+async def init_app():
+    try:
+        update_status("Python environment loaded successfully!")
+        await app.initialize()
+        update_status("Plot generated! Interact with the controls above.")
+    except Exception as e:
+        console.error(f"Error initializing app: {e}")
+        update_status(f"❌ Error: {e}")
+
+# Run initialization
+asyncio.ensure_future(init_app())
+    </py-script>
+</body>
+</html>
