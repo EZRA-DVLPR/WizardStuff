@@ -6,7 +6,7 @@
     <title>Python Web App with PyScript</title>
     
     <!-- PyScript CSS and JS -->
-	<link rel="stylesheet" href="default.css" type="text/css">
+    <link rel="stylesheet" href="default.css" type="text/css">
     <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
     <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
 </head>
@@ -22,7 +22,7 @@
         <div class="controls">
             <div class="control-group">
                 <label>
-                    <input type="checkbox" id="color-checkbox" py-change="handle_color_change()">
+                    <input type="checkbox" id="color-checkbox">
                     🎨 Make y = x line RED (unchecked = blue)
                 </label>
             </div>
@@ -42,54 +42,15 @@
 
     <!-- Python Configuration -->
     <py-config>
-        packages = ["numpy", "matplotlib", "plotly"]
-        
-        [[fetch]]
-        files = ["./main.py", "./plot_utils.py"]
+        packages = ["numpy", "matplotlib", "plotly", "pandas"]
+
+		[[fetch]]
+		files = ["./main.py"]
     </py-config>
 
     <!-- Main Python Script -->
     <py-script>
-import asyncio
-from js import document, console
-from pyodide.ffi import create_proxy
-import numpy as np
-import plotly.graph_objects as go
-import plotly.offline as pyo
-from plotly.offline import init_notebook_mode
-import json
-
-# Import our custom modules
 import main
-import plot_utils
-
-# Initialize the app
-app = main.PlotApp()
-
-def handle_color_change():
-    """Called when checkbox state changes"""
-    checkbox = document.getElementById('color-checkbox')
-    is_red = checkbox.checked
-    console.log(f"Checkbox changed: {is_red}")
-    app.update_plot_color(is_red)
-
-def update_status(message):
-    """Update the status message"""
-    status_elem = document.getElementById('status')
-    status_elem.innerHTML = f"✅ {message}"
-
-# Initialize the app
-async def init_app():
-    try:
-        update_status("Python environment loaded successfully!")
-        await app.initialize()
-        update_status("Plot generated! Interact with the controls above.")
-    except Exception as e:
-        console.error(f"Error initializing app: {e}")
-        update_status(f"❌ Error: {e}")
-
-# Run initialization
-asyncio.ensure_future(init_app())
     </py-script>
 </body>
 </html>

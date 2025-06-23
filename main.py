@@ -1,144 +1,68 @@
-# Main Python application logic for the interactive web app.
-# This file contains the core application class and plotting logic.
+import matplotlib.pyplot as plt
+import io
+import base64
+from js import document
+from pyodide.ffi import create_proxy
 
-import numpy as np
-import plotly.graph_objects as go
-import plotly.offline as pyo
-from js import document, console
-import json
-from plot_utils import DataGenerator, PlotStyler
+# Update status
+status_elem = document.getElementById("status")
+status_elem.innerHTML = "Python loaded! Creating plot..."
 
-
-class PlotApp:
-    # """Main application class handling the interactive plotting."""
-
-    def __init__(self):
-        self.data_generator = DataGenerator()
-        self.plot_styler = PlotStyler()
-        self.current_color_is_red = False
-
-    async def initialize(self):
-        # """Initialize the application and create the first plot."""
-        console.log("Initializing PlotApp...")
-        await self.create_initial_plot()
-
-    async def create_initial_plot(self):
-        # """Create the initial plot with default settings."""
-        try:
-            # Generate data using our Python utilities
-            x_data, y_data = self.data_generator.generate_linear_data(-10, 10, 0.5)
-
-            # Create the plot
-            fig = self.create_plotly_figure(x_data, y_data, is_red=False)
-
-            # Convert to HTML and display
-            plot_html = pyo.plot(fig, output_type="div", include_plotlyjs=False)
-
-            # Inject Plotly.js if not already loaded
-            await self.ensure_plotly_loaded()
-
-            # Update the plot container
-            plot_container = document.getElementById("plot-container")
-            plot_container.innerHTML = plot_html
-
-            console.log("Initial plot created successfully!")
-
-        except Exception as e:
-            console.error(f"Error creating initial plot: {e}")
-            raise e
-
-    def create_plotly_figure(self, x_data, y_data, is_red=False):
-        # """Create a Plotly figure with the given data and color scheme."""
-
-        # Use our Python styling utilities
-        colors = self.plot_styler.get_color_scheme(is_red)
-
-        trace = go.Scatter(
-            x=x_data,
-            y=y_data,
-            mode="lines+markers",
-            name="y = x",
-            line=dict(color=colors["line"], width=3),
-            marker=dict(color=colors["marker"], size=6, opacity=0.8),
-        )
-
-        # Create layout with Python-generated styling
-        layout = self.plot_styler.create_layout(
-            title=f"Linear Function: y = x {'(RED)' if is_red else '(BLUE)'}",
-            is_red=is_red,
-        )
-
-        fig = go.Figure(data=[trace], layout=layout)
-        return fig
-
-    def update_plot_color(self, is_red):
-        # """Update the plot color based on checkbox state."""
-        try:
-            console.log(f"Updating plot color: is_red = {is_red}")
-            self.current_color_is_red = is_red
-
-            # Regenerate data (in case we want to modify it based on color)
-            x_data, y_data = self.data_generator.generate_linear_data(-10, 10, 0.5)
-
-            # Create new figure with updated colors
-            fig = self.create_plotly_figure(x_data, y_data, is_red)
-
-            # Update the plot
-            plot_html = pyo.plot(fig, output_type="div", include_plotlyjs=False)
-            plot_container = document.getElementById("plot-container")
-            plot_container.innerHTML = plot_html
-
-            console.log("Plot color updated successfully!")
-
-        except Exception as e:
-            console.error(f"Error updating plot color: {e}")
-
-    async def ensure_plotly_loaded(self):
-        # """Ensure Plotly.js is loaded for rendering."""
-        # Inject Plotly.js CDN if not already present
-        script_exists = document.querySelector('script[src*="plotly"]')
-        if not script_exists:
-            console.log("Loading Plotly.js...")
-            script = document.createElement("script")
-            script.src = (
-                "https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"
-            )
-            document.head.appendChild(script)
-
-            # Wait for script to load
-            await self.wait_for_plotly()
-
-    async def wait_for_plotly(self):
-        # """Wait for Plotly to be available."""
-        import asyncio
-
-        max_attempts = 50
-        for attempt in range(max_attempts):
-            try:
-                # Check if Plotly is available in the global scope
-                if hasattr(document.defaultView, "Plotly"):
-                    console.log("Plotly.js loaded successfully!")
-                    return
-            except:
-                pass
-            await asyncio.sleep(0.1)
-
-        console.log("Warning: Plotly.js may not have loaded properly")
+# Simple data
+x = [1, 2, 3]
+y = [1, 2, 3]
 
 
-# Helper functions for data processing
-def calculate_polynomial(x_values, coefficients):
-    # """Calculate polynomial values for given x values and coefficients."""
-    return np.polyval(coefficients, x_values)
+def create_display_plot(is_red):
+    """Create and display the plot with specified color"""
+    # Clear any existing plot
+    plt.clf()
 
-
-def generate_sample_data(func_type="linear", n_points=50):
-    # """Generate sample data for different function types."""
-    x = np.linspace(-10, 10, n_points)
-
-    if func_type == "linear":
-        y = x  # y = x
+    # Create the plot
+    plt.figure(figsize=(8, 6))
+    if is_red:
+        plt.plot(x, y, "ro-", linewidth=2, markersize=8, label="Red Line")
     else:
-        y = x  # default to linear
+        plt.plot(x, y, "bo-", linewidth=2, markersize=8, label="Blue Line")
+    plt.xlabel("X values")
+    plt.ylabel("Y values")
+    plt.title(f'Simple Plot: x=[1,2,3], y=[1,2,3] {"(RED)" if is_red else "(BLUE)"}')
+    plt.grid(True, alpha=0.3)
+    plt.legend()
 
-    return x.tolist(), y.tolist()
+    # Convert plot to image
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format="png", dpi=100, bbox_inches="tight")
+    buffer.seek(0)
+    image_base64 = base64.b64encode(buffer.read()).decode()
+    plt.close()
+
+    # Display the plot
+    plot_container = document.getElementById("plot-container")
+    plot_container.innerHTML = f'<img src="data:image/png;base64,{image_base64}" style="width:100%; height:auto;">'
+
+
+def handle_color_change(event):
+    """Called when checkbox state changes"""
+    checkbox = document.getElementById("color-checkbox")
+    is_red = checkbox.checked
+    print(f"Checkbox changed: {is_red}")
+    create_display_plot(is_red)
+
+    # Update status
+    status_elem = document.getElementById("status")
+    status_elem.innerHTML = f"✅ Plot updated! Color: {'RED' if is_red else 'BLUE'}"
+
+
+# Create a JavaScript-compatible proxy for the event handler
+color_change_proxy = create_proxy(handle_color_change)
+
+# Add event listener to checkbox
+checkbox = document.getElementById("color-checkbox")
+checkbox.addEventListener("change", color_change_proxy)
+
+# Create initial plot (blue, since checkbox starts unchecked)
+create_display_plot(False)
+
+# Update status
+status_elem.innerHTML = "✅ Plot created successfully! Use checkbox to change color."
